@@ -1,0 +1,39 @@
+name: Daily Land Sync & Kakao Alert
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # 매일 한국시간 오전 9:00 실행
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run-all:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 코드 불러오기
+        uses: actions/checkout@v4
+
+      - name: 파이썬 환경 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 필수 패키지 설치
+        run: pip install requests
+
+      - name: 매물 수집 · 합산 계산 · 웹 생성 · 카톡 발송
+        env:
+          KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          WEB_PAGE_URL: https://bsy0070-ui.github.io/geumbit/
+        run: python main.py
+
+      - name: 생성된 웹페이지(index.html) 자동 배포
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add index.html
+          git commit -m "Update daily land table" || exit 0
+          git push
